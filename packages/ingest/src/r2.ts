@@ -3,12 +3,32 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
+import { mkdirSync, existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { ProcessedImage } from "./assets.js";
 
-/** Where processed images live. Interface so we can dry-run without R2. */
+/** Where processed images live. Interface so the backend is swappable. */
 export interface ImageStore {
-  /** Upload if the content-addressed object is not already present. */
+  /** Persist if the content-addressed object is not already present. */
   put(img: ProcessedImage): Promise<void>;
+}
+
+/**
+ * DEFAULT store: write images into the data branch under `assets/`, so they are
+ * committed and served as static files with the site. No object store, no
+ * billing, no card. Content-addressed → identical images collapse to one file.
+ */
+export class DataDirStore implements ImageStore {
+  private dir: string;
+  constructor(outDir: string) {
+    this.dir = join(outDir, "assets");
+    mkdirSync(this.dir, { recursive: true });
+  }
+  async put(img: ProcessedImage): Promise<void> {
+    const path = join(this.dir, img.filename);
+    if (existsSync(path)) return; // content-addressed → already correct bytes
+    writeFileSync(path, img.bytes);
+  }
 }
 
 export interface R2Config {
@@ -43,12 +63,13 @@ export class R2Store implements ImageStore {
   }
 
   async put(img: ProcessedImage): Promise<void> {
-    if (this.seen.has(img.key)) return;
-    this.seen.add(img.key);
+    const key = `i/${img.filename}`;
+    if (this.seen.has(key)) return;
+    this.seen.add(key);
     // content-addressed: if it exists, the bytes are identical — skip.
     try {
       await this.s3.send(
-        new HeadObjectCommand({ Bucket: this.cfg.bucket, Key: img.key }),
+        new HeadObjectCommand({ Bucket: this.cfg.bucket, Key: key }),
       );
       return;
     } catch {
@@ -57,7 +78,7 @@ export class R2Store implements ImageStore {
     await this.s3.send(
       new PutObjectCommand({
         Bucket: this.cfg.bucket,
-        Key: img.key,
+        Key: key,
         Body: img.bytes,
         ContentType: img.contentType,
         // immutable: content-addressed URL never changes → cache a year.
@@ -67,7 +88,7 @@ export class R2Store implements ImageStore {
   }
 }
 
-/** Dry-run store: computes URLs but uploads nothing. Used without creds. */
+/** Dry-run store: computes URLs but persists nothing. For tests. */
 export class NullStore implements ImageStore {
   async put(): Promise<void> {
     /* no-op */

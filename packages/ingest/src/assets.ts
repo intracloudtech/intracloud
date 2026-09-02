@@ -1,11 +1,11 @@
 import sharp from "sharp";
 import { createHash } from "node:crypto";
-import { CDN_ORIGIN, IMAGE_MAX_WIDTH, MAX_IMAGE_BYTES } from "./config.js";
+import { assetBase, IMAGE_MAX_WIDTH, MAX_IMAGE_BYTES } from "./config.js";
 
 export interface ProcessedImage {
-  /** object key within the bucket, e.g. `i/abc123….webp` */
-  key: string;
-  /** public CDN url */
+  /** content-addressed filename, e.g. `abc123….webp` */
+  filename: string;
+  /** public url the post body points at (site-relative by default). */
   url: string;
   bytes: Buffer;
   contentType: string;
@@ -31,6 +31,11 @@ export async function processImageBytes(
     return null;
   }
   const sha = createHash("sha256").update(out).digest("hex").slice(0, 16);
-  const key = `i/${sha}.webp`;
-  return { key, url: `${CDN_ORIGIN}/${key}`, bytes: out, contentType: "image/webp" };
+  const filename = `${sha}.webp`;
+  return {
+    filename,
+    url: `${assetBase()}/${filename}`,
+    bytes: out,
+    contentType: "image/webp",
+  };
 }

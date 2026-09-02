@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 import { GithubClient, realSleep, AuthError } from "./github.js";
 import { createLogger } from "./logger.js";
 import { runSync } from "./sync.js";
-import { r2ConfigFromEnv, R2Store, NullStore } from "./r2.js";
+import { r2ConfigFromEnv, R2Store, DataDirStore } from "./r2.js";
 import { writeProfileReadme } from "./profile.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -46,8 +46,12 @@ async function main() {
   });
 
   const r2 = r2ConfigFromEnv();
-  const store = r2 ? new R2Store(r2) : new NullStore();
-  if (!r2) logger.warn("R2 not configured; images processed but not uploaded (NullStore)");
+  const store = r2 ? new R2Store(r2) : new DataDirStore(dataDir);
+  logger.info(
+    r2
+      ? "image store: R2 (ASSET_BASE should point at the bucket's public origin)"
+      : "image store: data branch assets/ (served static with the site)",
+  );
 
   try {
     const summary = await runSync(client, store, logger, {

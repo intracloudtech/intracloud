@@ -16,8 +16,8 @@ main (source)                         data (orphan branch, force-pushed)
   packages/schema/   shared Zod         state.json     blob shas + first_seen_at
   packages/ingest/   the Action         search-index.json
   packages/site/     Astro              content/{owner}/{repo}/{path}.{md,html}
-  data/aliases.json                     .github-profile/README.md
-  data/blocklist.json
+  data/aliases.json                     assets/{sha}.webp   re-hosted images
+  data/blocklist.json                   .github-profile/README.md
   intracloud.md      first post
 ```
 
@@ -29,14 +29,16 @@ A scheduled GitHub Action (`packages/ingest`):
    detection + adaptive slice splitting.
 2. **Detects change** — compares each file's blob sha against `state.json`;
    byte-identical files are skipped entirely.
-3. **Transforms** — one mdast pass rehosts images to R2 (WebP, ≤1600px,
-   content-addressed), rewrites relative inter-post links, normalizes tags,
-   sanitizes untrusted HTML.
+3. **Transforms** — one mdast pass re-hosts images (WebP, ≤1600px,
+   content-addressed) into the data branch under `assets/`, rewrites relative
+   inter-post links, normalizes tags, sanitizes untrusted HTML.
 4. **Publishes** — writes `feed.json` / `state.json` / `content/` and
    force-pushes the orphan `data` branch (flat history).
 
 A static **Astro** site (`packages/site`) reads that branch via the Content
 Layer API and prerenders every page — real HTML for crawlers and unfurlers.
+Re-hosted images are copied into the build and served at `/i/{sha}.webp`, so
+the whole thing runs on a free static host with **no object store and no card**.
 The only client-side JavaScript is the search box (MiniSearch over a lean index).
 
 ## Develop
@@ -52,14 +54,14 @@ npm --workspace packages/site run preview
 ## Run the real sync locally
 
 ```bash
-GITHUB_PAT=ghp_xxx \
-R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET=... \
-npm run sync
+GITHUB_PAT=ghp_xxx npm run sync
 ```
 
 Cross-repo code search **requires a PAT** — the default Actions `GITHUB_TOKEN`
-cannot do it. Without R2 credentials the sync still runs (images are processed
-but not uploaded). See [`.env.example`](.env.example).
+cannot do it. That's the only credential you need: images are re-hosted into the
+data branch's `assets/` and served with the site, so there's no object store to
+configure. (If you later want a CDN, set the R2 env vars in
+[`.env.example`](.env.example) plus `ASSET_BASE=https://cdn.example.com/i`.)
 
 ## Publish a post
 

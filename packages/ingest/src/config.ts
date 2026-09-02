@@ -41,7 +41,18 @@ export const MAX_POSTS_PER_AUTHOR_PER_DAY = 2;
 
 /** Production origins. */
 export const SITE_ORIGIN = "https://intracloud.tech";
-export const CDN_ORIGIN = "https://cdn.intracloud.tech";
+
+/**
+ * Base URL that rewritten image `src`s point at.
+ *
+ * Default is the SITE-RELATIVE `/i` — images live in the data branch under
+ * `assets/` and are served as static files alongside the site (free, no
+ * object store, no card). Set `ASSET_BASE` to an absolute origin (e.g.
+ * `https://cdn.intracloud.tech/i`) only if you later move assets to R2/a CDN.
+ */
+export function assetBase(): string {
+  return (process.env.ASSET_BASE ?? "/i").replace(/\/+$/, "");
+}
 
 export const GITHUB_API = "https://api.github.com";
 

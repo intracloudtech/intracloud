@@ -11,10 +11,18 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import sharp from "sharp";
 import { GithubClient } from "./github.js";
 import { createLogger } from "./logger.js";
 import { runSync } from "./sync.js";
-import { NullStore } from "./r2.js";
+import { DataDirStore } from "./r2.js";
+
+// A real PNG so the image pipeline (fetch → webp → data-branch assets/) runs.
+const demoPng = await sharp({
+  create: { width: 800, height: 400, channels: 3, background: { r: 37, g: 99, b: 235 } },
+})
+  .png()
+  .toBuffer();
 
 const repoRoot = resolve(fileURLToPath(import.meta.url), "..", "..", "..", "..");
 const outDir = resolve(repoRoot, "data-branch");
@@ -79,7 +87,7 @@ const gen2: Spec[] = [
     path: "intracloud.md",
     sha: "kai-1",
     content: post("Shipping a static site with zero JavaScript", ["astro", "web", "performance"],
-      "Every page is prerendered HTML. The only script on the whole site is the search box. Lighthouse is very happy about this."),
+      "Every page is prerendered HTML. The only script on the whole site is the search box.\n\n![architecture](./diagram.png)\n\nLighthouse is very happy about this."),
   },
 ];
 
@@ -116,6 +124,13 @@ function mockClient(specs: Spec[]) {
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
+    // relative image assets (contents API, raw bytes)
+    if (/\/contents\/.+\.png$/.test(u.pathname)) {
+      return new Response(demoPng, {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      });
+    }
     return new Response(JSON.stringify({ message: "not found" }), { status: 404 });
   }) as unknown as typeof fetch;
 
@@ -126,7 +141,7 @@ function mockClient(specs: Spec[]) {
 async function main() {
   const logger = createLogger();
   logger.info("seed: generation 1 (first sync — everything backfill)");
-  await runSync(mockClient(gen1), new NullStore(), logger, {
+  await runSync(mockClient(gen1), new DataDirStore(outDir), logger, {
     outDir,
     aliases,
     blocklist,
@@ -135,7 +150,7 @@ async function main() {
   });
 
   logger.info("seed: generation 2 (new posts in known repos → Latest)");
-  const summary = await runSync(mockClient(gen2), new NullStore(), logger, {
+  const summary = await runSync(mockClient(gen2), new DataDirStore(outDir), logger, {
     outDir,
     aliases,
     blocklist,

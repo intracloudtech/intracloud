@@ -6,4 +6,5 @@ dist
 coverage
 packages/site/dist
 data-branch
+packages/site/public/i
 .env
