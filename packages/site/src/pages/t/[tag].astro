@@ -1,0 +1,25 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import PostCard from "../../components/PostCard.astro";
+import { routableTags } from "../../lib/rank.js";
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("posts")).map((e) => e.data);
+  // Only tags with >= 3 posts become real routes. Thinner tags render nothing.
+  return routableTags(posts).map(({ tag, posts }) => ({
+    params: { tag },
+    props: { tag, posts },
+  }));
+}
+
+const { tag, posts } = Astro.props as { tag: string; posts: any[] };
+---
+
+<Base title={`#${tag}`} description={`Posts tagged ${tag} on Intracloud.`} path={`/t/${tag}`}>
+  <h1>#{tag}</h1>
+  <p class="meta">{posts.length} posts</p>
+  <ul class="post-list">
+    {posts.map((post) => <PostCard post={post} />)}
+  </ul>
+</Base>

@@ -1,0 +1,88 @@
+---
+import Base from "../layouts/Base.astro";
+---
+
+<Base
+  title="Search"
+  description="Search every post on Intracloud."
+  path="/search"
+>
+  <h1>Search</h1>
+  <input
+    id="search-input"
+    type="search"
+    placeholder="Search titles, summaries, tags, authors…"
+    autocomplete="off"
+    autofocus
+  />
+  <div id="search-results">
+    <p class="meta">Type to search. Everything runs in your browser — no queries leave this page.</p>
+  </div>
+</Base>
+
+<script>
+  import MiniSearch from "minisearch";
+
+  type Doc = {
+    id: string;
+    title: string;
+    summary: string;
+    tags: string[];
+    author: string;
+    url: string;
+    first_seen_at: string;
+  };
+
+  const input = document.getElementById("search-input") as HTMLInputElement;
+  const results = document.getElementById("search-results")!;
+
+  const mini = new MiniSearch<Doc>({
+    fields: ["title", "summary", "tags", "author"],
+    storeFields: ["title", "summary", "author", "url", "tags", "first_seen_at"],
+    searchOptions: { boost: { title: 3, tags: 2 }, prefix: true, fuzzy: 0.2 },
+  });
+
+  let ready = false;
+  fetch("/search-index.json")
+    .then((r) => r.json())
+    .then((docs: Doc[]) => {
+      mini.addAll(docs);
+      ready = true;
+      if (input.value) run();
+    });
+
+  function esc(s: string) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function run() {
+    const q = input.value.trim();
+    if (!q) {
+      results.innerHTML =
+        '<p class="meta">Type to search. Everything runs in your browser.</p>';
+      return;
+    }
+    if (!ready) return;
+    const hits = mini.search(q).slice(0, 50);
+    if (hits.length === 0) {
+      results.innerHTML = `<p class="meta">No results for “${esc(q)}”.</p>`;
+      return;
+    }
+    results.innerHTML =
+      '<ul class="post-list">' +
+      hits
+        .map(
+          (h: any) =>
+            `<li><h2><a href="${h.url}">${esc(h.title)}</a></h2>` +
+            `<p class="meta">by @${esc(h.author)} · ${esc(String(h.first_seen_at).slice(0, 10))}</p>` +
+            (h.summary ? `<p class="summary">${esc(h.summary)}</p>` : "") +
+            "</li>",
+        )
+        .join("") +
+      "</ul>";
+  }
+
+  input.addEventListener("input", run);
+</script>

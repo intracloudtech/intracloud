@@ -1,0 +1,82 @@
+---
+import "../styles/global.css";
+import { SITE_NAME } from "../lib/constants.js";
+
+export interface Props {
+  title: string;
+  description?: string;
+  /** site-relative canonical path (no origin) */
+  path: string;
+  ogImage?: string;
+  /** author-supplied cross-post canonical (overrides self-canonical) */
+  canonicalOverride?: string;
+  type?: "website" | "article";
+}
+
+const {
+  title,
+  description = "",
+  path,
+  ogImage,
+  canonicalOverride,
+  type = "website",
+} = Astro.props;
+
+const canonical = canonicalOverride ?? new URL(path, Astro.site).href;
+const og = ogImage ? new URL(ogImage, Astro.site).href : undefined;
+const fullTitle = path === "/" ? title : `${title} · ${SITE_NAME}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonical} />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={SITE_NAME}
+      href={new URL("/rss.xml", Astro.site).href}
+    />
+
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:url" content={canonical} />
+    {og && <meta property="og:image" content={og} />}
+    <meta
+      name="twitter:card"
+      content={og ? "summary_large_image" : "summary"}
+    />
+    {og && <meta name="twitter:image" content={og} />}
+  </head>
+  <body>
+    <header class="site">
+      <div class="wrap">
+        <a class="brand" href="/">☁ Intracloud</a>
+        <nav>
+          <a href="/">Latest</a>
+          <a href="/search">Search</a>
+          <a href="/about">About</a>
+          <a href="/rss.xml">RSS</a>
+        </nav>
+      </div>
+    </header>
+    <main>
+      <div class="wrap">
+        <slot />
+      </div>
+    </main>
+    <footer class="site">
+      <div class="wrap">
+        <span>Intracloud — a zero-touch blog network.</span>
+        <a href="https://github.com" style="margin-left:auto">Source on GitHub</a>
+      </div>
+    </footer>
+  </body>
+</html>

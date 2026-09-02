@@ -1,0 +1,110 @@
+name: sync
+
+on:
+  schedule:
+    # Every 30 minutes. GitHub's search index lags minutes-to-an-hour, so this
+    # cadence means "push and it appears within the hour".
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+# Push the data branch back to this repo.
+permissions:
+  contents: write
+
+# Never let two syncs overlap — one force-pushes the data branch.
+concurrency:
+  group: intracloud-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source (main)
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: Checkout data branch
+        uses: actions/checkout@v4
+        continue-on-error: true # first run: the branch does not exist yet
+        with:
+          ref: data
+          path: data-branch
+
+      - name: Ensure data branch working tree exists
+        run: |
+          if [ ! -d data-branch/.git ]; then
+            mkdir -p data-branch
+            cd data-branch
+            git init -q
+            git checkout -q --orphan data
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: main/package-lock.json
+
+      - name: Install
+        working-directory: main
+        run: npm ci
+
+      - name: Test (fail the run before touching data if the suite is red)
+        working-directory: main
+        run: npm run test
+
+      - name: Sync
+        working-directory: main
+        env:
+          # Cross-repo code search REQUIRES a PAT — the default GITHUB_TOKEN
+          # cannot do it. Fine-grained or classic token in repo secrets.
+          GITHUB_PAT: ${{ secrets.INTRACLOUD_PAT }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          DATA_DIR: ${{ github.workspace }}/data-branch
+        run: npm run sync
+
+      - name: Commit + force-push data branch (orphan, flat history)
+        working-directory: data-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "intracloud-bot"
+          git config user.email "bot@intracloud.tech"
+          git add -A
+          # Guard: no changes → no commit (else ~17k empty commits a year).
+          if git rev-parse --verify HEAD >/dev/null 2>&1 && git diff --cached --quiet; then
+            echo "no changes; skipping push"
+            exit 0
+          fi
+          # Recreate as a single orphan commit so history never accumulates.
+          git checkout -q --orphan fresh
+          git add -A
+          git commit -q -m "sync $(date -u +%F-%H%M)"
+          git remote remove origin 2>/dev/null || true
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -f origin fresh:data
+
+      - name: Update .github profile README
+        if: ${{ hashFiles('data-branch/.github-profile/README.md') != '' }}
+        continue-on-error: true
+        env:
+          # Needs a PAT with contents:write on the org's `.github` repo.
+          PROFILE_PAT: ${{ secrets.INTRACLOUD_PAT }}
+          PROFILE_REPO: ${{ secrets.PROFILE_REPO }} # e.g. intracloud/.github
+        run: |
+          [ -z "$PROFILE_REPO" ] && { echo "PROFILE_REPO unset; skipping"; exit 0; }
+          tmp=$(mktemp -d)
+          git clone --depth 1 "https://x-access-token:${PROFILE_PAT}@github.com/${PROFILE_REPO}.git" "$tmp"
+          mkdir -p "$tmp/profile"
+          cp data-branch/.github-profile/README.md "$tmp/profile/README.md"
+          cd "$tmp"
+          git config user.name "intracloud-bot"
+          git config user.email "bot@intracloud.tech"
+          git add -A
+          git diff --cached --quiet || { git commit -q -m "profile: latest posts"; git push; }

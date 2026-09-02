@@ -1,0 +1,133 @@
+---
+import { getCollection } from "astro:content";
+import type { Post } from "@intracloud/schema";
+import Base from "../layouts/Base.astro";
+import PostCard from "../components/PostCard.astro";
+import {
+  live,
+  postsByAuthor,
+  postsByRepo,
+  reposByAuthor,
+  authors,
+} from "../lib/rank.js";
+import { readBodyHtml } from "../lib/bodies.js";
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("posts")).map((e) => e.data);
+  const shown = live(posts);
+  const entries = new Map<string, any>();
+
+  // author pages
+  for (const owner of authors(posts)) {
+    entries.set(`@${owner}`, { params: { slug: `@${owner}` }, props: { kind: "author", owner } });
+  }
+
+  // repo collection pages
+  const repoSeen = new Set<string>();
+  for (const p of shown) {
+    const slug = `@${p.author}/${p.repo}`;
+    if (repoSeen.has(slug)) continue;
+    repoSeen.add(slug);
+    entries.set(slug, {
+      params: { slug },
+      props: { kind: "repo", owner: p.author, repo: p.repo },
+    });
+  }
+
+  // post pages — these WIN over a repo-collection slug (root-level posts)
+  for (const p of shown) {
+    const slug = p.url.slice(1); // drop leading /
+    entries.set(slug, { params: { slug }, props: { kind: "post", id: p.id } });
+  }
+
+  return [...entries.values()];
+}
+
+const { kind } = Astro.props as { kind: "author" | "repo" | "post" } & Record<string, any>;
+const posts = (await getCollection("posts")).map((e) => e.data) as Post[];
+---
+
+{kind === "author" && (() => {
+  const owner = (Astro.props as any).owner as string;
+  const repos = reposByAuthor(posts, owner);
+  const all = postsByAuthor(posts, owner);
+  return (
+    <Base title={`@${owner}`} description={`Posts by @${owner} on Intracloud.`} path={`/@${owner}`}>
+      <h1>@{owner}</h1>
+      <p class="meta">{all.length} post{all.length === 1 ? "" : "s"} across {repos.length} repo{repos.length === 1 ? "" : "s"}.</p>
+      {repos.map((g) => (
+        <section>
+          <h2><a href={`/@${owner}/${g.repo}`}>{g.repo}</a></h2>
+          <ul class="post-list">
+            {g.posts.map((post) => <PostCard post={post} showAuthor={false} />)}
+          </ul>
+        </section>
+      ))}
+    </Base>
+  );
+})()}
+
+{kind === "repo" && (() => {
+  const owner = (Astro.props as any).owner as string;
+  const repo = (Astro.props as any).repo as string;
+  const list = postsByRepo(posts, owner, repo);
+  return (
+    <Base title={`${owner}/${repo}`} description={`The ${repo} collection by @${owner}.`} path={`/@${owner}/${repo}`}>
+      <p class="meta"><a href={`/@${owner}`}>@{owner}</a> /</p>
+      <h1>{repo}</h1>
+      <ul class="post-list">
+        {list.map((post) => <PostCard post={post} showAuthor={false} />)}
+      </ul>
+    </Base>
+  );
+})()}
+
+{kind === "post" && (() => {
+  const id = (Astro.props as any).id as string;
+  const post = posts.find((p) => p.id === id)!;
+  const body = readBodyHtml(post);
+  const date = post.first_seen_at.slice(0, 10);
+  const updated = post.updated_at.slice(0, 10);
+  const ogImage = `/og/${post.url.slice(1)}.png`;
+  return (
+    <Base
+      title={post.title}
+      description={post.summary}
+      path={post.url}
+      ogImage={ogImage}
+      canonicalOverride={post.canonical}
+      type="article"
+    >
+      {post.duplicate_of && (
+        <p class="banner">
+          This post also appears elsewhere. Canonical copy:
+          {" "}<a href={posts.find((p) => p.id === post.duplicate_of)?.url ?? "/"}>original</a>.
+        </p>
+      )}
+      <p class="meta">
+        by <a href={`/@${post.author}`}>@{post.author}</a> in
+        {" "}<a href={`/@${post.author}/${post.repo}`}>{post.repo}</a>
+      </p>
+      <h1>{post.title}</h1>
+      <p class="meta">
+        <time datetime={post.first_seen_at}>{date}</time>
+        {updated !== date && <> · updated <time datetime={post.updated_at}>{updated}</time></>}
+        {" · "}<a href={post.rawUrl}>raw</a>
+        {post.canonical && <> · <a href={post.canonical} rel="canonical">cross-posted</a></>}
+      </p>
+      {post.tags.length > 0 && (
+        <div class="tags">
+          {post.tags.map((t) => <a class="tag" href={`/t/${t}`}>{t}</a>)}
+        </div>
+      )}
+      {post.cover && <img class="cover" src={post.cover} alt="" />}
+      {post.lint.length > 0 && (
+        <div class="lint">
+          <strong>Lint warnings from Intracloud</strong> (visible so you can fix them):
+          <ul>{post.lint.map((l) => <li>{l.code}: {l.message}</li>)}</ul>
+        </div>
+      )}
+      <article class="prose" set:html={body} />
+    </Base>
+  );
+})()}
