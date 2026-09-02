@@ -1,0 +1,17 @@
+{
+  "k8s": "kubernetes",
+  "js": "javascript",
+  "ts": "typescript",
+  "py": "python",
+  "golang": "go",
+  "rustlang": "rust",
+  "postgres": "postgresql",
+  "pg": "postgresql",
+  "ml": "machine-learning",
+  "ai": "artificial-intelligence",
+  "gh": "github",
+  "k8": "kubernetes",
+  "node": "nodejs",
+  "reactjs": "react",
+  "vuejs": "vue"
+}
