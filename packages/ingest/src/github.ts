@@ -70,7 +70,7 @@ export class GithubClient {
 
   constructor(private deps: GithubDeps) {}
 
-  private headers(): HeadersInit {
+  private headers(): Record<string, string> {
     return {
       Authorization: `Bearer ${this.deps.token}`,
       Accept: "application/vnd.github+json",
@@ -148,6 +148,34 @@ export class GithubClient {
       throw new Error(`unexpected blob encoding: ${json.encoding}`);
     }
     return Buffer.from(json.content, "base64").toString("utf-8");
+  }
+
+  /**
+   * Fetch a repo file's raw bytes via the contents API (authenticated,
+   * 5000/hr, honours rate-limit headers). Returns null on 404 so a missing
+   * relative image degrades to a lint warning rather than aborting the post.
+   */
+  async fetchContentBytes(
+    owner: string,
+    repo: string,
+    path: string,
+  ): Promise<Buffer | null> {
+    const encPath = path
+      .split("/")
+      .map((s) => encodeURIComponent(s))
+      .join("/");
+    const url = `${GITHUB_API}/repos/${owner}/${repo}/contents/${encPath}`;
+    const res = await this.withRetry(() =>
+      this.deps.fetch(url, {
+        headers: { ...this.headers(), Accept: "application/vnd.github.raw+json" },
+      }),
+    );
+    const rl = parseRateLimit(res.headers);
+    if (rl) this.lastBlobRateLimit = rl;
+    if (res.status === 404) return null;
+    if (res.status === 401) throw new AuthError("contents auth failed (401)");
+    if (!res.ok) throw new Error(`contents fetch failed (${res.status})`);
+    return Buffer.from(await res.arrayBuffer());
   }
 
   /** Fetch raw bytes from an authenticated URL (used for image assets). */

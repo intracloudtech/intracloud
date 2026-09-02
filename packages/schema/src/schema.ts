@@ -226,10 +226,12 @@ export const PostSchema = z.object({
   duplicate_of: z.string().optional(),
   bodyHash: z.string(),
 
-  /** Rendered, sanitized, asset-rewritten HTML body. */
-  html: z.string(),
-  /** Rewritten markdown source (assets/links rehosted). */
-  markdown: z.string(),
+  /**
+   * Path (relative to the data branch) of the rendered HTML body and the
+   * rewritten markdown source. The bodies live in `content/` files, not in
+   * feed.json, so the feed stays small and shardable.
+   */
+  contentPath: z.string(),
 
   lint: z.array(LintWarningSchema).default([]),
 });
