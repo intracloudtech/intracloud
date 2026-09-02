@@ -1,0 +1,68 @@
+name: deploy
+
+# Build the static site from `main` (source) + `data` (content) and publish to
+# GitHub Pages. Runs after every successful sync, and on demand.
+on:
+  workflow_run:
+    workflows: ["sync"]
+    types: [completed]
+  workflow_dispatch:
+
+# Pages deploy needs these; nothing here writes to the repo.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One live deploy at a time; let the newest win.
+concurrency:
+  group: intracloud-pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    # Skip if the triggering sync failed (manual dispatch always runs).
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout source (main)
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: Checkout data branch
+        uses: actions/checkout@v4
+        continue-on-error: true # first deploy: data branch may not exist yet
+        with:
+          ref: data
+          path: data-branch
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: main/package-lock.json
+
+      - name: Install
+        working-directory: main
+        run: npm ci
+
+      - name: Build site
+        working-directory: main
+        env:
+          # Site reads feed.json + content/ + assets/ from the data branch.
+          # prebuild copies assets/ → public/i so images ship in the artifact.
+          DATA_DIR: ${{ github.workspace }}/data-branch
+        run: npm run build:site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: main/packages/site/dist
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

@@ -41,6 +41,27 @@ Re-hosted images are copied into the build and served at `/i/{sha}.webp`, so
 the whole thing runs on a free static host with **no object store and no card**.
 The only client-side JavaScript is the search box (MiniSearch over a lean index).
 
+## Deploy (GitHub Pages, free — no card anywhere)
+
+The whole stack runs on GitHub: the [`sync`](.github/workflows/sync.yml) workflow
+force-pushes the `data` branch every 30 min, and [`deploy`](.github/workflows/deploy.yml)
+rebuilds the site (source from `main` + content from `data`, images included)
+and publishes to Pages after each sync.
+
+One-time setup:
+
+1. Create the `intracloudtech` org and push this repo to
+   `github.com/intracloudtech/intracloud`.
+2. Add a repo secret `INTRACLOUD_PAT` — a **classic** PAT with `public_repo`
+   (the only required secret; the default `GITHUB_TOKEN` can't do cross-repo
+   code search). Optionally add `PROFILE_REPO=intracloudtech/.github` to publish
+   the profile README.
+3. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
+4. Point `intracloud.tech` DNS at GitHub Pages (the [`CNAME`](packages/site/public/CNAME)
+   ships in the build).
+5. **Actions → sync → Run workflow** for the first index; `deploy` chains
+   automatically. Or run `deploy` manually to publish an empty site first.
+
 ## Develop
 
 ```bash

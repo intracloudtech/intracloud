@@ -42,7 +42,7 @@ function post(title: string, tags: string[], body: string): string {
 }
 
 const gen1: Spec[] = [
-  { full_name: "intracloud/intracloud", path: "intracloud.md", sha: "self-1", content: selfPost },
+  { full_name: "intracloudtech/intracloud", path: "intracloud.md", sha: "self-1", content: selfPost },
   {
     full_name: "sam/blog",
     path: "posts/rust-gc/intracloud.md",

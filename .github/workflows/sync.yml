@@ -100,7 +100,7 @@ jobs:
         env:
           # Needs a PAT with contents:write on the org's `.github` repo.
           PROFILE_PAT: ${{ secrets.INTRACLOUD_PAT }}
-          PROFILE_REPO: ${{ secrets.PROFILE_REPO }} # e.g. intracloud/.github
+          PROFILE_REPO: ${{ secrets.PROFILE_REPO }} # e.g. intracloudtech/.github
         run: |
           [ -z "$PROFILE_REPO" ] && { echo "PROFILE_REPO unset; skipping"; exit 0; }
           tmp=$(mktemp -d)
