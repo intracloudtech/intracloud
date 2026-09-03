@@ -3,9 +3,13 @@ name: deploy
 # Build the static site from `main` (source) + `data` (content) and publish to
 # GitHub Pages. Runs after every successful sync, and on demand.
 on:
+  # Deploy after each sync (new content)…
   workflow_run:
     workflows: ["sync"]
     types: [completed]
+  # …and immediately on any push to main (UI / template / code tweaks).
+  push:
+    branches: [main]
   workflow_dispatch:
 
 # Pages deploy needs these; nothing here writes to the repo.
