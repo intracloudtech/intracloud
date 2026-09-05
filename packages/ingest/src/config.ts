@@ -70,7 +70,10 @@ export const SITE_ORIGIN = "https://intracloud.tech";
  * `https://cdn.intracloud.tech/i`) only if you later move assets to R2/a CDN.
  */
 export function assetBase(): string {
-  return (process.env.ASSET_BASE ?? "/i").replace(/\/+$/, "");
+  // NB: an unset CI `vars.ASSET_BASE` arrives as "" (not undefined), so treat
+  // blank as unset and fall back to the site-relative /i.
+  const b = process.env.ASSET_BASE?.trim();
+  return (b && b.length > 0 ? b : "/i").replace(/\/+$/, "");
 }
 
 export const GITHUB_API = "https://api.github.com";

@@ -1,6 +1,29 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import sharp from "sharp";
 import { processImageBytes } from "../src/assets.js";
+import { assetBase } from "../src/config.js";
+
+describe("assetBase", () => {
+  afterEach(() => {
+    delete process.env.ASSET_BASE;
+  });
+  it("defaults to /i when unset", () => {
+    delete process.env.ASSET_BASE;
+    expect(assetBase()).toBe("/i");
+  });
+  it("treats an empty string (unset CI var) as /i", () => {
+    process.env.ASSET_BASE = "";
+    expect(assetBase()).toBe("/i");
+  });
+  it("treats whitespace as /i", () => {
+    process.env.ASSET_BASE = "   ";
+    expect(assetBase()).toBe("/i");
+  });
+  it("uses an explicit CDN base and strips trailing slash", () => {
+    process.env.ASSET_BASE = "https://cdn.example.com/i/";
+    expect(assetBase()).toBe("https://cdn.example.com/i");
+  });
+});
 
 async function png(w: number, h: number, color = { r: 200, g: 100, b: 50 }) {
   return sharp({
