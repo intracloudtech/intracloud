@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mockGithubClient, type SearchItemSpec } from "./helpers.js";
+import { mockGithubClient } from "./helpers.js";
+
+type Repo = { full_name: string; files: Array<{ path: string; sha: string }> };
+const topic = (repos: Repo[]) => () => repos;
 import { NullStore } from "../src/r2.js";
 import { runSync, type SyncConfig } from "../src/sync.js";
 import type { Post } from "@intracloud/schema";
@@ -31,11 +34,8 @@ function md(title: string, body = "hello world", extra = ""): string {
 
 describe("runSync end to end (mocked github)", () => {
   it("first sync marks posts backfill; feed + state + content written", async () => {
-    const items: SearchItemSpec[] = [
-      { full_name: "sam/blog", path: "intracloud.md", sha: "s1" },
-    ];
     const { client, logger } = mockGithubClient({
-      search: ({ filename }) => (filename === "intracloud.md" ? items : []),
+      topicRepos: topic([{ full_name: "sam/blog", files: [{ path: "intracloud.md", sha: "s1" }] }]),
       blobs: { s1: md("First Post") },
     });
     const summary = await runSync(client, new NullStore(), logger, CONFIG(outDir, "2026-09-02T00:00:00.000Z"));
@@ -60,22 +60,23 @@ describe("runSync end to end (mocked github)", () => {
 
   it("second sync skips unchanged, marks a genuinely-new post non-backfill", async () => {
     // run 1
-    let items: SearchItemSpec[] = [
-      { full_name: "sam/blog", path: "intracloud.md", sha: "s1" },
-    ];
     let mock = mockGithubClient({
-      search: ({ filename }) => (filename === "intracloud.md" ? items : []),
+      topicRepos: topic([{ full_name: "sam/blog", files: [{ path: "intracloud.md", sha: "s1" }] }]),
       blobs: { s1: md("First") },
     });
     await runSync(mock.client, new NullStore(), mock.logger, CONFIG(outDir, "2026-09-02T00:00:00.000Z"));
 
     // run 2: same post unchanged + a new post in the same repo
-    items = [
-      { full_name: "sam/blog", path: "intracloud.md", sha: "s1" },
-      { full_name: "sam/blog", path: "posts/new/intracloud.md", sha: "s2" },
-    ];
     mock = mockGithubClient({
-      search: ({ filename }) => (filename === "intracloud.md" ? items : []),
+      topicRepos: topic([
+        {
+          full_name: "sam/blog",
+          files: [
+            { path: "intracloud.md", sha: "s1" },
+            { path: "posts/new/intracloud.md", sha: "s2" },
+          ],
+        },
+      ]),
       blobs: { s1: md("First"), s2: md("Second") },
     });
     const summary = await runSync(mock.client, new NullStore(), mock.logger, CONFIG(outDir, "2026-09-03T00:00:00.000Z"));
@@ -91,13 +92,12 @@ describe("runSync end to end (mocked github)", () => {
   });
 
   it("marks cross-owner duplicates", async () => {
-    const items: SearchItemSpec[] = [
-      { full_name: "amy/a", path: "intracloud.md", sha: "x1" },
-      { full_name: "bob/b", path: "intracloud.md", sha: "x2" },
-    ];
     const same = md("Shared", "the exact same body text here");
     const { client, logger } = mockGithubClient({
-      search: ({ filename }) => (filename === "intracloud.md" ? items : []),
+      topicRepos: topic([
+        { full_name: "amy/a", files: [{ path: "intracloud.md", sha: "x1" }] },
+        { full_name: "bob/b", files: [{ path: "intracloud.md", sha: "x2" }] },
+      ]),
       blobs: { x1: same, x2: same },
     });
     const summary = await runSync(client, new NullStore(), logger, CONFIG(outDir, "2026-09-02T00:00:00.000Z"));
@@ -108,13 +108,17 @@ describe("runSync end to end (mocked github)", () => {
   });
 
   it("skips a draft and continues past a malformed post", async () => {
-    const items: SearchItemSpec[] = [
-      { full_name: "sam/blog", path: "intracloud.md", sha: "ok" },
-      { full_name: "sam/blog", path: "d/intracloud.md", sha: "draft" },
-      { full_name: "sam/blog", path: "bad/intracloud.md", sha: "bad" },
-    ];
     const { client, logger } = mockGithubClient({
-      search: ({ filename }) => (filename === "intracloud.md" ? items : []),
+      topicRepos: topic([
+        {
+          full_name: "sam/blog",
+          files: [
+            { path: "intracloud.md", sha: "ok" },
+            { path: "d/intracloud.md", sha: "draft" },
+            { path: "bad/intracloud.md", sha: "bad" },
+          ],
+        },
+      ]),
       blobs: {
         ok: md("Good"),
         draft: md("Draft", "x", "draft: true\n"),

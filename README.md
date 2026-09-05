@@ -23,10 +23,11 @@ main (source)                         data (orphan branch, force-pushed)
 
 A scheduled GitHub Action (`packages/ingest`):
 
-1. **Discovers** — code-searches GitHub for `intracloud filename:intracloud.md`,
-   partitioned across `size:` slices to beat the 1000-result-per-query cap,
-   throttled to the 10 req/min code-search limit, with loud saturation
-   detection + adaptive slice splitting.
+1. **Discovers** — repository search for `topic:intracloud` (the fresh, reliable
+   repo index), then reads each repo's git tree once to locate every
+   `intracloud.md` / `.mdx` at any depth, with blob shas for change detection.
+   GitHub's `/search/code` index is too slow/spotty for new repos, so it's only
+   an opt-in best-effort secondary (`INGEST_CODE_SEARCH=1`).
 2. **Detects change** — compares each file's blob sha against `state.json`;
    byte-identical files are skipped entirely.
 3. **Transforms** — one mdast pass re-hosts images (WebP, ≤1600px,
@@ -86,7 +87,8 @@ configure. (If you later want a CDN, set the R2 env vars in
 
 ## Publish a post
 
-Commit `intracloud.md` anywhere in a public repo:
+Commit `intracloud.md` anywhere in a public repo, then add the repo topic
+**`intracloud`**:
 
 ```markdown
 ---
@@ -98,6 +100,8 @@ tags: [postmortem]
 Your markdown here.
 ```
 
-Only `intracloud` and `title` are required. Author is your GitHub account;
+The `intracloud` repo topic is what makes discovery reliable (GitHub's
+code-search index doesn't cover new repos). Only `intracloud` and `title` are
+required in frontmatter. Author is your GitHub account;
 publish date is when Intracloud first sees the file; an update is the file's
 bytes changing. No `date`, `slug`, or `author` fields — they'd be gameable.

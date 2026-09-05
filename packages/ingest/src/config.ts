@@ -22,6 +22,25 @@ export const FILENAMES = ["intracloud.md", "intracloud.mdx"] as const;
 /** Code search is 10 req/min. 6.5s between calls stays safely under. */
 export const CODE_SEARCH_SLEEP_MS = 6500;
 
+/** Repo search is 30 req/min. 2.1s between calls stays safely under. */
+export const REPO_SEARCH_SLEEP_MS = 2100;
+
+/**
+ * Primary discovery is repository search by topic. Authors opt in by adding
+ * this topic to their repo (one click) — the repo-search index is fresh and
+ * reliable, unlike `/search/code`, which does not index new/small repos.
+ */
+export const DISCOVERY_TOPIC = process.env.INGEST_TOPIC ?? "intracloud";
+
+/**
+ * Code search is a best-effort SECONDARY source (off by default): it only
+ * covers repos GitHub's legacy code index happens to have, but costs a full
+ * ~4-minute throttled sweep. Enable with INGEST_CODE_SEARCH=1.
+ */
+export function codeSearchEnabled(env = process.env): boolean {
+  return env.INGEST_CODE_SEARCH === "1";
+}
+
 export const PER_PAGE = 100;
 export const MAX_PAGES = 10; // 100 * 10 = 1000 hard cap per query
 

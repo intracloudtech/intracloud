@@ -11,6 +11,8 @@ import type { GithubClient } from "./github.js";
 import type { ImageStore } from "./r2.js";
 import type { Logger } from "./logger.js";
 import { discover } from "./discover.js";
+import { discoverByTopic } from "./discover-topic.js";
+import { codeSearchEnabled } from "./config.js";
 import { loadState, classifyFile, buildNextState, type State } from "./state.js";
 import { parseFile, plainText, deriveSummary, bodyHash, parseMdast } from "./markdown.js";
 import { transformBody, rehostCover } from "./transform.js";
@@ -67,10 +69,21 @@ export async function runSync(
   const state: State = await loadState(join(config.outDir, "state.json"));
   const prevFeed = await loadPrevFeed(config.outDir);
 
-  const discovered = await discover(client, logger, {
+  // Primary discovery: repository search by topic (fresh, reliable index).
+  const discovered = await discoverByTopic(client, logger, {
     blockedRepos: config.blocklist.repos,
-    maxSplitDepth: config.maxSplitDepth,
   });
+
+  // Secondary (opt-in): legacy code search, for repos that happen to be
+  // code-indexed without a topic. Off by default — see config.
+  if (codeSearchEnabled()) {
+    logger.info("code search secondary enabled");
+    const extra = await discover(client, logger, {
+      blockedRepos: config.blocklist.repos,
+      maxSplitDepth: config.maxSplitDepth,
+    });
+    for (const [id, file] of extra) if (!discovered.has(id)) discovered.set(id, file);
+  }
 
   const summary: SyncSummary = {
     reposSeen: new Set([...discovered.values()].map((f) => f.ownerRepo)).size,

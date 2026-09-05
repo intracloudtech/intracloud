@@ -3,6 +3,7 @@ import {
   USER_AGENT,
   PER_PAGE,
   CODE_SEARCH_SLEEP_MS,
+  REPO_SEARCH_SLEEP_MS,
 } from "./config.js";
 import type { Logger } from "./logger.js";
 
@@ -39,6 +40,34 @@ export interface RateLimit {
   reset: number; // epoch seconds
 }
 
+/** One repository from the repo-search response. */
+export interface RepoSearchItem {
+  full_name: string;
+  name: string;
+  owner: { login: string };
+  default_branch: string;
+}
+
+export interface RepoSearchPage {
+  total_count: number;
+  incomplete_results: boolean;
+  items: RepoSearchItem[];
+}
+
+export interface TreeEntry {
+  path: string;
+  type: string; // "blob" | "tree"
+  sha: string;
+  /** blobs API url for this entry (== git_url used by fetchBlob). */
+  url: string;
+}
+
+export interface TreeResult {
+  sha: string;
+  tree: TreeEntry[];
+  truncated: boolean;
+}
+
 /** Injectable dependencies so the whole client runs offline in tests. */
 export interface GithubDeps {
   fetch: typeof fetch;
@@ -64,6 +93,7 @@ export class AuthError extends Error {}
 
 export class GithubClient {
   private lastSearchAt = 0;
+  private lastRepoSearchAt = 0;
   /** Last observed core (blob) rate limit. */
   lastBlobRateLimit: RateLimit | null = null;
   lastSearchRateLimit: RateLimit | null = null;
@@ -120,6 +150,67 @@ export class GithubClient {
       throw new Error(`code search failed (${res.status}): ${await safeText(res)}`);
     }
     return (await res.json()) as CodeSearchPage;
+  }
+
+  /**
+   * One repository-search page. Repo search is 30 req/min (looser than code
+   * search) and — critically — its index is FRESH: it returns new repos that
+   * `/search/code` won't index for days. This is the primary discovery source.
+   */
+  async searchRepositories(query: string, page: number): Promise<RepoSearchPage> {
+    const since = Date.now() - this.lastRepoSearchAt;
+    if (this.lastRepoSearchAt !== 0 && since < REPO_SEARCH_SLEEP_MS) {
+      await this.deps.sleep(REPO_SEARCH_SLEEP_MS - since);
+    }
+    const url = `${GITHUB_API}/search/repositories?per_page=${PER_PAGE}&page=${page}&q=${encodeURIComponent(
+      query,
+    )}`;
+    const res = await this.withRetry(() =>
+      this.deps.fetch(url, { headers: this.headers() }),
+    );
+    this.lastRepoSearchAt = Date.now();
+    const rl = parseRateLimit(res.headers);
+    if (rl) this.lastSearchRateLimit = rl;
+
+    if (res.status === 401) {
+      throw new AuthError(`repo search auth failed (401): ${await safeText(res)}`);
+    }
+    if (res.status === 403) {
+      const body = await safeText(res);
+      if (/rate limit|secondary/i.test(body)) {
+        this.deps.logger.warn("repo search secondary rate limit; backing off", { page });
+        await this.deps.sleep(REPO_SEARCH_SLEEP_MS * 3);
+        return this.searchRepositories(query, page);
+      }
+      throw new AuthError(`repo search forbidden (403): ${body}`);
+    }
+    if (!res.ok) {
+      throw new Error(`repo search failed (${res.status}): ${await safeText(res)}`);
+    }
+    return (await res.json()) as RepoSearchPage;
+  }
+
+  /**
+   * The full recursive tree of a repo at `ref` (default branch). One call gives
+   * every file path + blob sha, so we can locate intracloud.md at ANY depth
+   * without code search. `truncated` means the repo exceeded the tree limit.
+   */
+  async getTree(owner: string, repo: string, ref: string): Promise<TreeResult> {
+    const url = `${GITHUB_API}/repos/${owner}/${repo}/git/trees/${encodeURIComponent(
+      ref,
+    )}?recursive=1`;
+    const res = await this.withRetry(() =>
+      this.deps.fetch(url, { headers: this.headers() }),
+    );
+    const rl = parseRateLimit(res.headers);
+    if (rl) this.lastBlobRateLimit = rl;
+    if (res.status === 401) throw new AuthError("tree auth failed (401)");
+    if (res.status === 404 || res.status === 409) {
+      // 409 = empty repo; 404 = ref gone. Treat as no files.
+      return { sha: "", tree: [], truncated: false };
+    }
+    if (!res.ok) throw new Error(`tree fetch failed (${res.status})`);
+    return (await res.json()) as TreeResult;
   }
 
   /** Fetch and base64-decode a blob by its already-formed git_url. */

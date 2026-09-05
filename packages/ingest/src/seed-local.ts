@@ -96,27 +96,42 @@ function mockClient(specs: Spec[]) {
   for (const s of specs) blobs[s.sha] = s.content;
   const fetchImpl = (async (url: string) => {
     const u = new URL(url.toString());
-    if (u.pathname === "/search/code") {
-      const q = u.searchParams.get("q") ?? "";
+
+    // topic-based repository search (primary discovery)
+    if (u.pathname === "/search/repositories") {
       const page = Number(u.searchParams.get("page") ?? "1");
-      const filename = /filename:(intracloud\.mdx?)/.exec(q)?.[1] ?? "";
+      const names = [...new Set(specs.map((s) => s.full_name))];
       const items =
-        filename === "intracloud.md" && page === 1
-          ? specs.map((s) => {
-              const [owner, repo] = s.full_name.split("/");
-              return {
-                path: s.path,
-                sha: s.sha,
-                git_url: `https://api.github.com/repos/${s.full_name}/git/blobs/${s.sha}`,
-                repository: { full_name: s.full_name, name: repo, owner: { login: owner } },
-              };
+        page === 1
+          ? names.map((full) => {
+              const [owner, name] = full.split("/");
+              return { full_name: full, name, owner: { login: owner }, default_branch: "main" };
             })
           : [];
       return new Response(
-        JSON.stringify({ total_count: items.length, incomplete_results: false, items }),
+        JSON.stringify({ total_count: names.length, incomplete_results: false, items }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
+
+    // recursive git tree per repo
+    const treeM = /\/repos\/([^/]+)\/([^/]+)\/git\/trees\//.exec(u.pathname);
+    if (treeM) {
+      const full = `${treeM[1]}/${treeM[2]}`;
+      const tree = specs
+        .filter((s) => s.full_name === full)
+        .map((s) => ({
+          path: s.path,
+          type: "blob",
+          sha: s.sha,
+          url: `https://api.github.com/repos/${full}/git/blobs/${s.sha}`,
+        }));
+      return new Response(JSON.stringify({ sha: "root", tree, truncated: false }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
     const sha = /\/git\/blobs\/([^/?]+)/.exec(u.pathname)?.[1];
     if (sha && blobs[sha] !== undefined) {
       return new Response(

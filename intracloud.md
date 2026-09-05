@@ -24,8 +24,15 @@ There is no server, no database, and no user auth anywhere in this system.
 
 ## Publish your own
 
-Commit a file named `intracloud.md` anywhere in a public repo, with
-`intracloud: 1` and a `title` in its frontmatter. That's the entire API.
+Two steps, both one-time:
+
+1. Commit a file named `intracloud.md` anywhere in a public repo, with
+   `intracloud: 1` and a `title` in its frontmatter.
+2. Add the repo topic **`intracloud`** (repo home → ⚙ next to "About" → Topics).
+
+That's the entire API — no signup, no form. The topic is how discovery finds
+you reliably; GitHub's code-search index is too slow and spotty for new repos,
+so we use the fast, dependable repository-topic index instead.
 
 - Your **author identity** is your GitHub account — avatar and bio for free.
 - Your **publish date** is when Intracloud first sees the file. It can't be gamed.

@@ -33,7 +33,15 @@ export interface MockOptions {
    * Given the parsed query, return the FULL ordered list of items for that
    * (filename, slice) query. The mock paginates it into pages of 100.
    */
-  search: (q: { filename: string; slice: string }) => SearchItemSpec[];
+  search?: (q: { filename: string; slice: string }) => SearchItemSpec[];
+  /**
+   * Topic-based discovery. Given a topic, return the repos that carry it; each
+   * repo lists the intracloud files it contains (path + sha). The mock serves
+   * these via /search/repositories and /git/trees.
+   */
+  topicRepos?: (
+    topic: string,
+  ) => Array<{ full_name: string; default_branch?: string; files: Array<{ path: string; sha: string }> }>;
   /** blob content by sha */
   blobs?: Record<string, string>;
   /** rate-limit headers to attach */
@@ -62,13 +70,54 @@ export function mockGithubClient(opts: MockOptions) {
       const perPage = Number(u.searchParams.get("per_page") ?? "100");
       const filename = /filename:(intracloud\.mdx?)/.exec(q)?.[1] ?? "";
       const slice = /size:\S+/.exec(q)?.[0] ?? "";
-      const all = opts.search({ filename, slice });
+      const all = opts.search ? opts.search({ filename, slice }) : [];
       const start = (page - 1) * perPage;
       const items = all.slice(start, start + perPage).map(itemJson);
       return makeResponse(
         { total_count: all.length, incomplete_results: false, items },
         opts,
       );
+    }
+
+    if (u.pathname === "/search/repositories") {
+      const q = u.searchParams.get("q") ?? "";
+      const page = Number(u.searchParams.get("page") ?? "1");
+      const perPage = Number(u.searchParams.get("per_page") ?? "100");
+      const topic = /topic:(\S+)/.exec(q)?.[1] ?? "";
+      const repos = opts.topicRepos ? opts.topicRepos(topic) : [];
+      const items = repos.map((r) => {
+        const [owner, name] = r.full_name.split("/");
+        return {
+          full_name: r.full_name,
+          name,
+          owner: { login: owner },
+          default_branch: r.default_branch ?? "main",
+        };
+      });
+      const start = (page - 1) * perPage;
+      return makeResponse(
+        {
+          total_count: items.length,
+          incomplete_results: false,
+          items: items.slice(start, start + perPage),
+        },
+        opts,
+      );
+    }
+
+    // recursive git tree
+    const treeMatch = /\/repos\/([^/]+)\/([^/]+)\/git\/trees\//.exec(u.pathname);
+    if (treeMatch) {
+      const full = `${treeMatch[1]}/${treeMatch[2]}`;
+      const repos = opts.topicRepos ? opts.topicRepos("") : [];
+      const repo = repos.find((r) => r.full_name === full);
+      const tree = (repo?.files ?? []).map((f) => ({
+        path: f.path,
+        type: "blob",
+        sha: f.sha,
+        url: `https://api.github.com/repos/${full}/git/blobs/${f.sha}`,
+      }));
+      return makeResponse({ sha: "root", tree, truncated: false }, opts);
     }
 
     // blob fetch

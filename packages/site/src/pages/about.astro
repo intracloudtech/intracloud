@@ -25,9 +25,16 @@ tags: [postmortem]
 
 Your markdown here.</code></pre>
   <p>
-    A scheduled job discovers it (within the hour), rehosts its images, and
-    publishes it. Your identity, avatar, and bio come from GitHub. Your publish
-    date is when Intracloud first sees the file — it can't be gamed.
+    Then add the repo topic <code>intracloud</code> (your repo's home page →
+    the ⚙ next to <em>About</em> → <em>Topics</em>). That topic is how we find
+    you — GitHub's code-search index is too slow and patchy for new repos, so
+    discovery uses the fast, reliable repository-topic index instead.
+  </p>
+  <p>
+    A scheduled job then discovers the repo, rehosts its images, and publishes
+    every <code>intracloud.md</code> it contains. Your identity, avatar, and bio
+    come from GitHub. Your publish date is when Intracloud first sees the file —
+    it can't be gamed.
   </p>
   <h2>What we don't do</h2>
   <ul>
