@@ -68,18 +68,11 @@ export function routableTags(posts: Post[]): { tag: string; posts: Post[] }[] {
   return out.sort((a, b) => b.posts.length - a.posts.length || a.tag.localeCompare(b.tag));
 }
 
-/**
- * Latest feed: reverse-chron on first_seen_at, excluding backfill + drafts +
- * duplicates, capped at N posts per author per rolling 24h window.
- */
-export function latestFeed(posts: Post[]): Post[] {
-  const eligible = live(posts)
-    .filter((p) => !p.backfill)
-    .sort(byDateDesc);
-
+/** Cap at N posts per author per rolling 24h window. Assumes sorted desc. */
+function capPerAuthorPerDay(sorted: Post[]): Post[] {
   const windows = new Map<string, number[]>();
   const out: Post[] = [];
-  for (const p of eligible) {
+  for (const p of sorted) {
     const t = new Date(p.first_seen_at).getTime();
     const kept = windows.get(p.author) ?? [];
     const within = kept.filter((k) => Math.abs(k - t) < 24 * 3600 * 1000);
@@ -89,4 +82,26 @@ export function latestFeed(posts: Post[]): Post[] {
     out.push(p);
   }
   return out;
+}
+
+/**
+ * Latest feed: reverse-chron on first_seen_at, excluding backfill + drafts +
+ * duplicates, capped at N posts per author per rolling 24h window.
+ */
+export function latestFeed(posts: Post[]): Post[] {
+  return capPerAuthorPerDay(
+    live(posts).filter((p) => !p.backfill).sort(byDateDesc),
+  );
+}
+
+/**
+ * What the homepage shows. Prefer the strict Latest feed; but when it's empty
+ * (e.g. a fresh index where every post is still backfill), fall back to recent
+ * posts INCLUDING backfill so the homepage is never empty while content exists.
+ * The per-author cap still applies so the fallback can't be flooded either.
+ */
+export function homepageFeed(posts: Post[]): { posts: Post[]; fallback: boolean } {
+  const latest = latestFeed(posts);
+  if (latest.length > 0) return { posts: latest, fallback: false };
+  return { posts: capPerAuthorPerDay(live(posts).sort(byDateDesc)), fallback: true };
 }
