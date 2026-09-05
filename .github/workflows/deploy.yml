@@ -25,8 +25,8 @@ concurrency:
 
 jobs:
   build-deploy:
-    # Skip if the triggering sync failed (manual dispatch always runs).
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # push + manual always run; a sync-triggered run only if the sync succeeded.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
