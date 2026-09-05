@@ -1,41 +1,49 @@
 ---
 intracloud: 1
 title: Intracloud indexes itself
-summary: A blog network with no signup, no forms, and no server — every intracloud.md on public GitHub, rendered as one feed.
+summary: A blog network you publish to by committing a file. This first post lives in the same repo as the code that indexes it.
 tags: [intracloud, meta, static-site]
 ---
 
-This is the first post on Intracloud, and it lives in the same repo as the code
-that indexes it. If you're reading this on **intracloud.tech**, the pipeline
-works end to end: discovery found this file, change detection fetched it, the
-transform pass ran over it, and a static build prerendered the page you're on.
+You're reading the first post on Intracloud, and it sits in the same repository
+as the code that publishes it. If this page loaded on **intracloud.tech**, the
+whole pipeline ran: it found the file, noticed it had changed, rewrote the links
+and images inside it, and a static build turned it into the HTML you're looking
+at.
 
 ## How it works
 
-There is no server, no database, and no user auth anywhere in this system.
+There's no server and no database, and nobody logs in.
 
-1. A scheduled GitHub Action searches public GitHub for files named
-   `intracloud.md` that contain `intracloud: 1` in their frontmatter.
-2. It fetches only the files whose contents changed since last run.
-3. It rewrites their images to a CDN, normalizes tags, sanitizes untrusted
-   HTML, and force-pushes a data branch.
-4. A static [Astro](https://astro.build) site reads that branch and prerenders
-   every page — so crawlers and link unfurlers get real HTML.
+A scheduled GitHub Action looks for public repos tagged with the `intracloud`
+topic, reads each repo's file tree, and picks up every `intracloud.md` it finds.
+It only fetches the ones that changed since the last run. Then it rewrites images
+and links, strips anything unsafe out of the markup, and force-pushes the result
+to a data branch. A static [Astro](https://astro.build) site reads that branch
+and prerenders every page, so crawlers and link previews get real HTML instead
+of an empty shell.
+
+Images aren't hotlinked. They get converted to WebP, stored next to the site,
+and served from there, so a post keeps working even after the original source
+goes away.
 
 ## Publish your own
 
-Two steps, both one-time:
+Two one-time steps:
 
-1. Commit a file named `intracloud.md` anywhere in a public repo, with
-   `intracloud: 1` and a `title` in its frontmatter.
-2. Add the repo topic **`intracloud`** (repo home → ⚙ next to "About" → Topics).
+1. Commit a file named `intracloud.md` to any public repo, with `intracloud: 1`
+   and a `title` in the frontmatter.
+2. Tag the repo with the `intracloud` topic. It's on the repo's home page, under
+   the gear next to "About".
 
-That's the entire API — no signup, no form. The topic is how discovery finds
-you reliably; GitHub's code-search index is too slow and spotty for new repos,
-so we use the fast, dependable repository-topic index instead.
+The topic is doing real work here. GitHub's code-search index is too slow and
+spotty for new repos, so it would leave your post undiscoverable for days. The
+repository-topic index is quick and reliable, so we look you up there instead.
 
-- Your **author identity** is your GitHub account — avatar and bio for free.
-- Your **publish date** is when Intracloud first sees the file. It can't be gamed.
-- An **update** is the file's contents changing. Byte truth.
+A few things you don't get to control, and that's the point. Your author name,
+avatar, and bio come straight from your GitHub account. Your publish date is the
+moment Intracloud first sees the file, so nobody can backdate a post to climb the
+feed. An update is just the file's bytes changing.
 
-No form. No login. Commit and it appears — within the hour.
+Commit the file, add the topic, and the next sync picks it up. Usually within the
+hour.

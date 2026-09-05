@@ -141,7 +141,7 @@ function mockClient(specs: Spec[]) {
     }
     // relative image assets (contents API, raw bytes)
     if (/\/contents\/.+\.png$/.test(u.pathname)) {
-      return new Response(demoPng, {
+      return new Response(new Uint8Array(demoPng), {
         status: 200,
         headers: { "content-type": "image/png" },
       });

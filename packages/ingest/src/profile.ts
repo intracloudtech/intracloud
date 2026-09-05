@@ -22,15 +22,18 @@ export async function writeProfileReadme(
     return;
   }
 
-  const latest = posts
-    .filter((p) => !p.draft && !p.backfill && !p.duplicate_of)
-    .sort((a, b) => b.first_seen_at.localeCompare(a.first_seen_at))
-    .slice(0, 10);
+  // Same fallback as the homepage: prefer genuinely-new posts, but when the
+  // index is still all-backfill, show recent posts so the profile isn't empty.
+  const byDate = (a: Post, b: Post) =>
+    b.first_seen_at.localeCompare(a.first_seen_at);
+  const shown = posts.filter((p) => !p.draft && !p.duplicate_of);
+  const strict = shown.filter((p) => !p.backfill).sort(byDate);
+  const latest = (strict.length > 0 ? strict : shown.sort(byDate)).slice(0, 10);
 
   const lines: string[] = [
     "# Intracloud",
     "",
-    "A zero-touch blog network. Commit an `intracloud.md` with `intracloud: 1` in its frontmatter, add the `intracloud` repo topic, and it appears here — no signup, no form.",
+    "A blog network you publish to by committing a file. Add an `intracloud.md` with `intracloud: 1` in its frontmatter, tag the repo with the `intracloud` topic, and it shows up here. No account, no form.",
     "",
     `→ [intracloud.tech](${SITE_ORIGIN})`,
     "",

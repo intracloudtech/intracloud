@@ -11,10 +11,10 @@ const { posts: feed, fallback } = homepageFeed(posts);
 
 <Base title="Intracloud" description={SITE_DESCRIPTION} path="/">
   <h1>{fallback ? "Recent" : "Latest"}</h1>
-  <p class="meta">
-    Every <code>intracloud.md</code> on public GitHub, indexed automatically. No
-    signup, no form — commit the file, add the <code>intracloud</code> topic,
-    and it appears.
+  <p class="lede">
+    Every public GitHub repo with an <code>intracloud.md</code> and the
+    <code>intracloud</code> topic shows up here. You commit the file, add the
+    topic, and it appears. You never sign up or fill in a form.
   </p>
   {feed.length === 0 ? (
     <p class="banner">No posts yet. The first sync will populate this feed.</p>

@@ -169,7 +169,7 @@ export async function runSync(
 
       const t = await transformBody(parsed.body, deps);
       summary.imagesUploaded += t.imagesUploaded;
-      const html = renderHtml(t.markdown);
+      const html = await renderHtml(t.markdown);
 
       const text = plainText(parseMdast(parsed.body));
       const lint = [...parsed.warnings.map((w) => ({ code: "frontmatter", message: w })), ...t.lint];

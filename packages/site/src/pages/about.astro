@@ -9,11 +9,15 @@ const shown = live(posts);
 
 <Base title="About" description="How Intracloud works." path="/about">
   <h1>About Intracloud</h1>
+  <p class="lede">
+    Intracloud is a blog network you publish to by committing a file. There is
+    no account to create, no form to submit, and no server running behind it.
+  </p>
   <p>
-    Intracloud is a blog network with no signup, no forms, and no server. It
-    indexes every file named <code>intracloud.md</code> on public GitHub whose
-    frontmatter contains <code>intracloud: 1</code>, and renders them as a
-    unified, prerendered feed.
+    It looks across public GitHub for files named <code>intracloud.md</code>
+    that carry <code>intracloud: 1</code> in their frontmatter, and renders them
+    as one feed. Every page is plain prerendered HTML, so links unfurl and posts
+    show up in search.
   </p>
   <h2>Publish a post</h2>
   <p>Commit a file named <code>intracloud.md</code> anywhere in a public repo:</p>
@@ -25,23 +29,24 @@ tags: [postmortem]
 
 Your markdown here.</code></pre>
   <p>
-    Then add the repo topic <code>intracloud</code> (your repo's home page →
-    the ⚙ next to <em>About</em> → <em>Topics</em>). That topic is how we find
-    you — GitHub's code-search index is too slow and patchy for new repos, so
-    discovery uses the fast, reliable repository-topic index instead.
+    Then add the repo topic <code>intracloud</code>. It lives on your repo's
+    home page, under the gear icon next to <em>About</em>. The topic is what
+    lets us find you: GitHub's code-search index is too slow and spotty for new
+    repos, so we look up the repository-topic index instead, which is quick and
+    dependable.
   </p>
   <p>
-    A scheduled job then discovers the repo, rehosts its images, and publishes
-    every <code>intracloud.md</code> it contains. Your identity, avatar, and bio
-    come from GitHub. Your publish date is when Intracloud first sees the file —
-    it can't be gamed.
+    A scheduled job then reads the repo, rehosts any images, and publishes every
+    <code>intracloud.md</code> it contains. Your name, avatar, and bio come from
+    GitHub. Your publish date is the moment Intracloud first sees the file, so
+    you can't backdate a post to jump the feed.
   </p>
-  <h2>What we don't do</h2>
-  <ul>
-    <li>No accounts, OAuth, or login of any kind.</li>
-    <li>No comments, reactions, or follows.</li>
-    <li>No submission form — discovery is zero-touch by design.</li>
-  </ul>
+  <h2>What it doesn't do</h2>
+  <p>
+    Readers never log in, and neither do you. There are no comments, reactions,
+    or follows, and there is no submission form. The only way in is a commit,
+    which is the whole point.
+  </p>
   <p class="meta">
     Currently indexing {shown.length} post{shown.length === 1 ? "" : "s"} from
     {authors(posts).length} author{authors(posts).length === 1 ? "" : "s"}.
