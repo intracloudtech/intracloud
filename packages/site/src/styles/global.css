@@ -141,6 +141,9 @@ footer.site {
 }
 footer.site .wrap { display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: center; }
 footer.site a { color: var(--muted); }
+footer.site a:hover { color: var(--text); }
+.foot-nav { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--sp-4); }
+.copyright { font-variant-numeric: tabular-nums; }
 
 /* ── typography: negative tracking + tight leading grow with size ─────────── */
 h1 {

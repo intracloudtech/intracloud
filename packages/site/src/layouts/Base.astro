@@ -25,6 +25,7 @@ const {
 const canonical = canonicalOverride ?? new URL(path, Astro.site).href;
 const og = ogImage ? new URL(ogImage, Astro.site).href : undefined;
 const fullTitle = path === "/" ? title : `${title} · ${SITE_NAME}`;
+const year = new Date().getFullYear();
 ---
 
 <!doctype html>
@@ -63,8 +64,7 @@ const fullTitle = path === "/" ? title : `${title} · ${SITE_NAME}`;
           <a href="/">Latest</a>
           <a href="/search">Search</a>
           <a href="/t">Tags</a>
-          <a href="/about">About</a>
-          <a href="/rss.xml">RSS</a>
+          <a href="https://docs.intracloud.tech">Docs</a>
         </nav>
       </div>
     </header>
@@ -75,8 +75,13 @@ const fullTitle = path === "/" ? title : `${title} · ${SITE_NAME}`;
     </main>
     <footer class="site">
       <div class="wrap">
-        <span>Intracloud. Publish by committing a file.</span>
-        <a href="https://github.com/intracloudtech/intracloud" style="margin-left:auto">Source on GitHub</a>
+        <span class="copyright">© {year} Intracloud</span>
+        <nav class="foot-nav">
+          <a href="/about">About</a>
+          <a href="/rss.xml">RSS</a>
+          <a href="https://docs.intracloud.tech">Docs</a>
+          <a href="https://github.com/intracloudtech/intracloud">Source</a>
+        </nav>
       </div>
     </footer>
   </body>

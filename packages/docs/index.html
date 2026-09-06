@@ -9,6 +9,7 @@
       content="How Intracloud works: publishing a post, the frontmatter reference, the terminal CLI, the JSON and RSS feeds."
     />
     <link rel="canonical" href="https://docs.intracloud.tech/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <style>
       :root {
         color-scheme: light dark;
@@ -65,6 +66,19 @@
       @media (max-width:760px){ .layout{ grid-template-columns:1fr; gap:1.5rem; } aside{ position:static; } }
       @media (prefers-reduced-transparency: reduce){ header{ background:var(--bg); backdrop-filter:none; } }
       :focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+
+      /* syntax highlighting (class-based, theme-aware) */
+      :root { --hl-comment:#6e7781; --hl-keyword:#cf222e; --hl-string:#0a7d33;
+        --hl-number:#0550ae; --hl-attr:#0550ae; --hl-built:#0550ae; --hl-meta:#6e7781; }
+      @media (prefers-color-scheme: dark){ :root{ --hl-comment:#8b949e; --hl-keyword:#ff7b72;
+        --hl-string:#7ee787; --hl-number:#79c0ff; --hl-attr:#79c0ff; --hl-built:#79c0ff; --hl-meta:#8b949e; } }
+      .hljs-comment,.hljs-quote{ color:var(--hl-comment); font-style:italic; }
+      .hljs-keyword,.hljs-literal,.hljs-name{ color:var(--hl-keyword); }
+      .hljs-string,.hljs-meta-string{ color:var(--hl-string); }
+      .hljs-number,.hljs-symbol,.hljs-bullet{ color:var(--hl-number); }
+      .hljs-attr,.hljs-attribute{ color:var(--hl-attr); }
+      .hljs-built_in{ color:var(--hl-built); }
+      .hljs-meta{ color:var(--hl-meta); }
     </style>
   </head>
   <body>
@@ -116,11 +130,11 @@
         <h2 id="publish">Publish a post</h2>
         <p>Two one-time steps.</p>
         <p><strong>1. Commit a file named <code>intracloud.md</code></strong> to any public repo:</p>
-        <pre><code>---
-intracloud: 1
-title: How I broke prod
-tags: [postmortem, databases]
----
+        <pre><code class="hljs"><span class="hljs-meta">---</span>
+<span class="hljs-attr">intracloud:</span> <span class="hljs-number">1</span>
+<span class="hljs-attr">title:</span> <span class="hljs-string">How I broke prod</span>
+<span class="hljs-attr">tags:</span> [<span class="hljs-string">postmortem</span>, <span class="hljs-string">databases</span>]
+<span class="hljs-meta">---</span>
 
 Your markdown goes here.</code></pre>
         <p>
@@ -176,11 +190,11 @@ Your markdown goes here.</code></pre>
 
         <h2 id="cli">Terminal CLI</h2>
         <p>Read posts without leaving your terminal.</p>
-        <pre><code># no install needed
+        <pre><code class="hljs"><span class="hljs-comment"># no install needed</span>
 npx @intracloud/cli
-npx @intracloud/cli read 1
+npx @intracloud/cli <span class="hljs-built_in">read</span> 1
 
-# or install it
+<span class="hljs-comment"># or install it</span>
 npm i -g @intracloud/cli
 intracloud search rust</code></pre>
         <table>
