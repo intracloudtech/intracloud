@@ -169,6 +169,22 @@ h3 {
 .meta a { color: var(--text-2); font-weight: 550; }
 .meta a:hover { color: var(--text); }
 
+.byline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.who { display: inline-flex; align-items: center; gap: 0.4rem; }
+.avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  object-fit: cover;
+  vertical-align: middle;
+}
+.avatar-lg { width: 56px; height: 56px; }
+.author-head { display: flex; align-items: center; gap: var(--sp-4); margin-bottom: var(--sp-6); }
+.author-head h1 { margin: 0 0 var(--sp-1); }
+.author-head .meta { margin: 0; }
+
 .lede {
   font-size: 1.15rem;
   line-height: 1.55;
@@ -205,6 +221,10 @@ h3 {
 }
 a.tag:hover { text-decoration: none; background: var(--chip); filter: brightness(0.97); }
 a.tag:active { transform: scale(0.95); }
+
+.tag-cloud { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-6); }
+.tag-count { font-size: 0.95rem; padding: 0.3rem 0.75rem; }
+.tag-count span { color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .card {
   background: var(--bg-elev);

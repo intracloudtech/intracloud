@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import type { Post } from "@intracloud/schema";
+import { avatarUrl } from "@intracloud/schema";
 import { SITE_ORIGIN } from "./config.js";
 import type { SyncSummary } from "./sync.js";
 
@@ -42,9 +43,21 @@ export async function writeProfileReadme(
   ];
   for (const p of latest) {
     const date = p.first_seen_at.slice(0, 10);
-    lines.push(`- **[${escapeMd(p.title)}](${SITE_ORIGIN}${p.url})** — @${p.author} · ${date}`);
+    const tags = p.tags.length
+      ? " · " + p.tags.map((t) => "`" + t + "`").join(" ")
+      : "";
+    lines.push(`### [${escapeMd(p.title)}](${SITE_ORIGIN}${p.url})`);
+    lines.push("");
+    lines.push(
+      `<img src="${avatarUrl(p.author, 48)}" width="16" height="16" align="top" alt=""> ` +
+        `[@${p.author}](https://github.com/${p.author}) · ${date}${tags}`,
+    );
+    lines.push("");
+    if (p.summary) {
+      lines.push(p.summary);
+      lines.push("");
+    }
   }
-  lines.push("");
 
   const path = join(outDir, ".github-profile", "README.md");
   await mkdir(dirname(path), { recursive: true });

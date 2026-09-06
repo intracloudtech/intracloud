@@ -10,7 +10,13 @@ import {
   reposByAuthor,
   authors,
 } from "../lib/rank.js";
-import { readBodyHtml } from "../lib/bodies.js";
+import { readBodyHtml, readBodyMarkdown } from "../lib/bodies.js";
+import { avatarUrl } from "@intracloud/schema";
+
+function readingMinutes(markdown: string): number {
+  const words = markdown.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
 
 export async function getStaticPaths() {
   const posts = (await getCollection("posts")).map((e) => e.data);
@@ -53,8 +59,13 @@ const posts = (await getCollection("posts")).map((e) => e.data) as Post[];
   const all = postsByAuthor(posts, owner);
   return (
     <Base title={`@${owner}`} description={`Posts by @${owner} on Intracloud.`} path={`/@${owner}`}>
-      <h1>@{owner}</h1>
-      <p class="meta">{all.length} post{all.length === 1 ? "" : "s"} across {repos.length} repo{repos.length === 1 ? "" : "s"}.</p>
+      <div class="author-head">
+        <img class="avatar avatar-lg" src={avatarUrl(owner, 160)} alt="" width="56" height="56" loading="lazy" decoding="async" />
+        <div>
+          <h1>@{owner}</h1>
+          <p class="meta">{all.length} post{all.length === 1 ? "" : "s"} across {repos.length} repo{repos.length === 1 ? "" : "s"} · <a href={`https://github.com/${owner}`}>GitHub</a></p>
+        </div>
+      </div>
       {repos.map((g) => (
         <section>
           <h2><a href={`/@${owner}/${g.repo}`}>{g.repo}</a></h2>
@@ -86,6 +97,7 @@ const posts = (await getCollection("posts")).map((e) => e.data) as Post[];
   const id = (Astro.props as any).id as string;
   const post = posts.find((p) => p.id === id)!;
   const body = readBodyHtml(post);
+  const mins = readingMinutes(readBodyMarkdown(post));
   const date = post.first_seen_at.slice(0, 10);
   const updated = post.updated_at.slice(0, 10);
   const ogImage = `/og/${post.url.slice(1)}.png`;
@@ -104,13 +116,17 @@ const posts = (await getCollection("posts")).map((e) => e.data) as Post[];
           {" "}<a href={posts.find((p) => p.id === post.duplicate_of)?.url ?? "/"}>original</a>.
         </p>
       )}
-      <p class="meta">
-        by <a href={`/@${post.author}`}>@{post.author}</a> in
-        {" "}<a href={`/@${post.author}/${post.repo}`}>{post.repo}</a>
+      <p class="meta byline">
+        <a class="who" href={`/@${post.author}`}>
+          <img class="avatar" src={avatarUrl(post.author, 48)} alt="" width="20" height="20" loading="lazy" decoding="async" />
+          @{post.author}
+        </a>
+        <span>in <a href={`/@${post.author}/${post.repo}`}>{post.repo}</a></span>
       </p>
       <h1>{post.title}</h1>
       <p class="meta">
         <time datetime={post.first_seen_at}>{date}</time>
+        {" · "}{mins} min read
         {updated !== date && <> · updated <time datetime={post.updated_at}>{updated}</time></>}
         {" · "}<a href={post.rawUrl}>raw</a>
         {post.canonical && <> · <a href={post.canonical} rel="canonical">cross-posted</a></>}

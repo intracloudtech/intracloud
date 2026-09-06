@@ -16,9 +16,10 @@ describe("renderHtml", () => {
     expect(html).toContain("some text");
   });
 
-  it("renders a plain fence without a language", async () => {
-    const html = await renderHtml("```\nplain code\n```");
-    expect(html).toContain("plain code");
+  it("auto-detects and highlights a fence with no language", async () => {
+    const html = await renderHtml("```\nfunction greet() { return 42; }\n```");
+    expect(html).toContain("greet");
+    expect(html).toContain("hljs"); // auto-detection colors bare fences too
   });
 
   it("still strips scripts and handlers from raw HTML", async () => {

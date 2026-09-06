@@ -20,9 +20,10 @@ export async function renderHtml(markdown: string): Promise<string> {
   const mdast = parseMdast(markdown);
   const hast = raw(toHast(mdast, { allowDangerousHtml: true }) as any);
 
-  // highlight fenced code blocks that declare a language
+  // highlight fenced code blocks; auto-detect language when none is declared
+  // (mis-detection is better than no color for bare ``` fences)
   const highlighted = (await unified()
-    .use(rehypeHighlight, { detect: false, ignoreMissing: true })
+    .use(rehypeHighlight, { detect: true, ignoreMissing: true })
     .run(hast as any)) as any;
 
   const schema = {

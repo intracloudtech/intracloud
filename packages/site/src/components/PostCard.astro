@@ -1,5 +1,6 @@
 ---
 import type { Post } from "@intracloud/schema";
+import { avatarUrl } from "@intracloud/schema";
 export interface Props {
   post: Post;
   showAuthor?: boolean;
@@ -10,10 +11,14 @@ const date = post.first_seen_at.slice(0, 10);
 
 <li>
   <h2><a href={post.url}>{post.title}</a></h2>
-  <p class="meta">
-    {showAuthor && (<>by <a href={`/@${post.author}`}>@{post.author}</a> · </>)}
-    <a href={`/@${post.author}/${post.repo}`}>{post.repo}</a> · <time datetime={post.first_seen_at}>{date}</time>
-    {post.backfill && " · archived"}
+  <p class="meta byline">
+    {showAuthor && (
+      <a class="who" href={`/@${post.author}`}>
+        <img class="avatar" src={avatarUrl(post.author, 48)} alt="" width="20" height="20" loading="lazy" decoding="async" />
+        @{post.author}
+      </a>
+    )}
+    <span>{showAuthor && "· "}<a href={`/@${post.author}/${post.repo}`}>{post.repo}</a> · <time datetime={post.first_seen_at}>{date}</time>{post.backfill && " · archived"}</span>
   </p>
   {post.summary && <p class="summary">{post.summary}</p>}
   {post.tags.length > 0 && (

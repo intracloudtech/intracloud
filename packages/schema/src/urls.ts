@@ -58,6 +58,15 @@ export function authorUrl(owner: string): string {
   return `/@${owner}`;
 }
 
+/**
+ * A GitHub user's avatar. `https://github.com/{login}.png` is a public,
+ * stable redirect to the avatar — no API, no token. `size` requests a scaled
+ * copy (GitHub serves powers-of-two-ish sizes).
+ */
+export function avatarUrl(login: string, size = 80): string {
+  return `https://github.com/${encodeURIComponent(login)}.png?size=${size}`;
+}
+
 export function repoUrl(owner: string, repo: string): string {
   return `/@${owner}/${repo}`;
 }
