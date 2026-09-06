@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Intracloud Docs</title>
+    <meta
+      name="description"
+      content="How Intracloud works: publishing a post, the frontmatter reference, the terminal CLI, the JSON and RSS feeds."
+    />
+    <link rel="canonical" href="https://docs.intracloud.tech/" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --font: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+        --bg: #fbfbfd; --elev: #fff; --text: #1d1d1f; --text2: #4b4b50;
+        --muted: #86868b; --border: rgba(0,0,0,.09); --accent: #0066cc;
+        --chip: rgba(0,102,204,.08); --code: #f5f5f7; --scrim: rgba(255,255,255,.72);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg:#000; --elev:#141416; --text:#f5f5f7; --text2:#c7c7cc; --muted:#8e8e93;
+          --border:rgba(255,255,255,.1); --accent:#2997ff; --chip:rgba(41,151,255,.14);
+          --code:#1b1b1d; --scrim:rgba(20,20,22,.66); }
+      }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:var(--font);
+        font-size:17px; line-height:1.6; -webkit-font-smoothing:antialiased; font-optical-sizing:auto; }
+      a { color:var(--accent); text-decoration:none; }
+      a:hover { text-decoration:underline; text-underline-offset:2px; }
+      header { position:sticky; top:0; z-index:10; background:var(--scrim);
+        backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px);
+        box-shadow:0 1px 0 var(--border); }
+      header .bar { max-width:60rem; margin:0 auto; padding:0 1.25rem; height:52px;
+        display:flex; align-items:center; gap:1rem; }
+      header .brand { font-weight:600; letter-spacing:-.02em; color:var(--text); }
+      header nav { margin-left:auto; display:flex; gap:1.25rem; font-size:.9rem; }
+      header nav a { color:var(--text2); }
+      .layout { max-width:60rem; margin:0 auto; padding:2.5rem 1.25rem 5rem;
+        display:grid; grid-template-columns:200px 1fr; gap:3rem; }
+      aside { position:sticky; top:76px; align-self:start; font-size:.9rem; }
+      aside a { display:block; color:var(--muted); padding:.25rem 0; }
+      aside a:hover { color:var(--text); text-decoration:none; }
+      aside strong { display:block; margin:1rem 0 .35rem; font-size:.72rem; letter-spacing:.06em;
+        text-transform:uppercase; color:var(--muted); }
+      main { min-width:0; }
+      h1 { font-size:clamp(2rem,1.4rem + 2.4vw,2.7rem); line-height:1.08; letter-spacing:-.028em; margin:0 0 .5rem; }
+      h2 { font-size:1.5rem; letter-spacing:-.02em; margin:2.75rem 0 .75rem; padding-top:.5rem; }
+      h3 { font-size:1.15rem; letter-spacing:-.014em; margin:1.75rem 0 .5rem; }
+      .lede { font-size:1.2rem; color:var(--text2); max-width:42ch; }
+      p, li { color:var(--text); }
+      code { font-family:var(--mono); font-size:.86em; background:var(--code); padding:.12em .38em; border-radius:5px; }
+      pre { background:var(--code); border:1px solid var(--border); border-radius:8px;
+        padding:1rem 1.25rem; overflow-x:auto; font-size:.88rem; line-height:1.55; }
+      pre code { background:none; padding:0; }
+      table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.95rem; display:block; overflow-x:auto; }
+      th, td { border:1px solid var(--border); padding:.5rem .7rem; text-align:left; vertical-align:top; }
+      th { background:var(--code); font-weight:600; }
+      .req { color:#c1121f; font-weight:600; } @media (prefers-color-scheme:dark){ .req{color:#ff7b72;} }
+      .card { background:var(--elev); border:1px solid var(--border); border-radius:12px; padding:1.25rem 1.5rem; margin:1.25rem 0; }
+      .pill { display:inline-block; font-size:.78rem; padding:.12rem .55rem; border-radius:980px; background:var(--chip); color:var(--accent); }
+      footer { border-top:1px solid var(--border); color:var(--muted); font-size:.85rem;
+        max-width:60rem; margin:0 auto; padding:2rem 1.25rem; }
+      hr { border:none; border-top:1px solid var(--border); margin:2.5rem 0; }
+      @media (max-width:760px){ .layout{ grid-template-columns:1fr; gap:1.5rem; } aside{ position:static; } }
+      @media (prefers-reduced-transparency: reduce){ header{ background:var(--bg); backdrop-filter:none; } }
+      :focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="bar">
+        <a class="brand" href="/">☁ Intracloud Docs</a>
+        <nav>
+          <a href="https://intracloud.tech">Home</a>
+          <a href="https://github.com/intracloudtech/intracloud">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside>
+        <strong>Start</strong>
+        <a href="#what">What is Intracloud</a>
+        <a href="#publish">Publish a post</a>
+        <a href="#frontmatter">Frontmatter</a>
+        <strong>Reference</strong>
+        <a href="#how">How it works</a>
+        <a href="#cli">Terminal CLI</a>
+        <a href="#api">Feeds &amp; API</a>
+        <a href="#faq">FAQ</a>
+      </aside>
+
+      <main>
+        <h1>Intracloud Docs</h1>
+        <p class="lede">
+          Intracloud is a blog network you publish to by committing a file.
+          There is no account, no form, and no server behind it.
+        </p>
+
+        <h2 id="what">What is Intracloud</h2>
+        <p>
+          Intracloud looks across public GitHub for files named
+          <code>intracloud.md</code> in repos tagged with the
+          <code>intracloud</code> topic, and renders them as one feed at
+          <a href="https://intracloud.tech">intracloud.tech</a>. Every page is
+          plain prerendered HTML, so links unfurl and posts show up in search.
+        </p>
+        <p>
+          Your author name, avatar, and bio come from your GitHub account. Your
+          publish date is the moment Intracloud first sees the file, so nobody
+          can backdate a post to climb the feed. An update is just the file's
+          bytes changing.
+        </p>
+
+        <h2 id="publish">Publish a post</h2>
+        <p>Two one-time steps.</p>
+        <p><strong>1. Commit a file named <code>intracloud.md</code></strong> to any public repo:</p>
+        <pre><code>---
+intracloud: 1
+title: How I broke prod
+tags: [postmortem, databases]
+---
+
+Your markdown goes here.</code></pre>
+        <p>
+          <strong>2. Add the repo topic <code>intracloud</code>.</strong> It's
+          on your repo's home page, under the gear next to <em>About</em>.
+        </p>
+        <div class="card">
+          The topic is what makes discovery reliable. GitHub's code-search index
+          is too slow and spotty for new repos, so Intracloud looks you up in the
+          repository-topic index instead, which is quick and dependable. Without
+          the topic, your post may never be found.
+        </div>
+        <p>
+          A repo can hold many posts. Put each one in its own folder with its own
+          <code>intracloud.md</code>. The next sync picks everything up, usually
+          within the hour.
+        </p>
+
+        <h2 id="frontmatter">Frontmatter reference</h2>
+        <p>Only two fields are required. Unknown fields are ignored, not rejected.</p>
+        <table>
+          <thead><tr><th>Field</th><th>Required</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>intracloud</code></td><td class="req">yes</td><td>Always <code>1</code>. Marks the file and sets the schema version.</td></tr>
+            <tr><td><code>title</code></td><td class="req">yes</td><td>The post title.</td></tr>
+            <tr><td><code>summary</code></td><td>no</td><td>One line. Falls back to the first ~200 characters of the body.</td></tr>
+            <tr><td><code>tags</code></td><td>no</td><td>A list. Normalized (lowercased, hyphenated), capped at 5. A tag needs 3+ posts before it gets its own page.</td></tr>
+            <tr><td><code>cover</code></td><td>no</td><td>Cover image, relative or absolute. Re-hosted automatically.</td></tr>
+            <tr><td><code>canonical</code></td><td>no</td><td>The original URL if this is cross-posted.</td></tr>
+            <tr><td><code>draft</code></td><td>no</td><td><code>true</code> keeps the post out of the index.</td></tr>
+          </tbody>
+        </table>
+        <p>
+          There is deliberately no <code>date</code>, <code>slug</code>, or
+          <code>author</code> field. Those come from Git and your account, so
+          they can't be gamed.
+        </p>
+
+        <h2 id="how">How it works</h2>
+        <p>A scheduled job runs every 30 minutes and:</p>
+        <ul>
+          <li>finds repos tagged <code>intracloud</code> and reads each one's file tree;</li>
+          <li>fetches only the <code>intracloud.md</code> files that changed since last run;</li>
+          <li>converts images to WebP and stores them next to the site, so posts don't hotlink and don't break when a source goes away;</li>
+          <li>rewrites links, strips unsafe HTML, and publishes a static build.</li>
+        </ul>
+        <p>
+          The first time your repo is seen, its posts are marked as archived and
+          kept off the front page, so publishing a repo with a back catalog
+          doesn't flood the feed. Posts you add afterward appear on the front
+          page normally.
+        </p>
+
+        <h2 id="cli">Terminal CLI</h2>
+        <p>Read posts without leaving your terminal.</p>
+        <pre><code># no install needed
+npx @intracloud/cli
+npx @intracloud/cli read 1
+
+# or install it
+npm i -g @intracloud/cli
+intracloud search rust</code></pre>
+        <table>
+          <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>intracloud [latest] [-n N]</code></td><td>list the latest posts</td></tr>
+            <tr><td><code>intracloud search &lt;query&gt;</code></td><td>search titles, summaries, tags, authors</td></tr>
+            <tr><td><code>intracloud read &lt;number|url&gt;</code></td><td>read a post (number is from the last list)</td></tr>
+            <tr><td><code>intracloud open &lt;number|url&gt;</code></td><td>open a post in your browser</td></tr>
+            <tr><td><code>intracloud author &lt;name&gt;</code></td><td>posts by a GitHub user</td></tr>
+            <tr><td><code>intracloud tag &lt;tag&gt;</code></td><td>posts with a tag</td></tr>
+            <tr><td><code>intracloud tags</code></td><td>all tags with counts</td></tr>
+          </tbody>
+        </table>
+        <p>
+          Options: <code>--site &lt;url&gt;</code> points at another instance
+          (or set <code>INTRACLOUD_URL</code>), <code>--json</code> gives
+          machine-readable output, <code>-n N</code> sets how many to list.
+        </p>
+
+        <h2 id="api">Feeds &amp; API</h2>
+        <p>Everything is a static file you can fetch directly.</p>
+        <table>
+          <thead><tr><th>Endpoint</th><th>What you get</th></tr></thead>
+          <tbody>
+            <tr><td><code><a href="https://intracloud.tech/feed.json">/feed.json</a></code></td><td>the full feed: every post's metadata (title, summary, tags, author, url, dates)</td></tr>
+            <tr><td><code><a href="https://intracloud.tech/search-index.json">/search-index.json</a></code></td><td>a lean index for search (title, summary, tags, author, url)</td></tr>
+            <tr><td><code><a href="https://intracloud.tech/rss.xml">/rss.xml</a></code></td><td>RSS of the latest posts</td></tr>
+            <tr><td><code>/@owner/repo/post.md</code></td><td>the raw markdown source of any post (add <code>.md</code> to its URL)</td></tr>
+          </tbody>
+        </table>
+        <h3>RSS</h3>
+        <p>
+          Point any reader at <code>https://intracloud.tech/rss.xml</code>. The
+          feed carries the latest posts with titles, summaries, tags, and links
+          back to the full articles.
+        </p>
+
+        <h2 id="faq">FAQ</h2>
+        <h3>How do I delete a post?</h3>
+        <p>
+          Delete the <code>intracloud.md</code> file, set <code>draft: true</code>,
+          make the repo private, or remove the topic. The next sync drops it, and
+          because the published data is rebuilt from scratch each run, it's gone.
+        </p>
+        <h3>How do I update a post?</h3>
+        <p>Edit the file and push. The next sync picks up the new version.</p>
+        <h3>Why isn't my post showing up?</h3>
+        <p>
+          Check that the file is named exactly <code>intracloud.md</code>, has
+          <code>intracloud: 1</code> and a <code>title</code>, the repo is public,
+          and the <code>intracloud</code> topic is set. Then give it up to an hour.
+        </p>
+        <h3>What about images?</h3>
+        <p>
+          Reference them however you like (relative paths or absolute URLs).
+          Intracloud fetches each one, converts it to WebP, and serves it from
+          its own domain. Images over 10&nbsp;MB are skipped.
+        </p>
+
+        <hr />
+        <p class="lede" style="font-size:1.05rem">
+          Ready? <a href="https://intracloud.tech">Browse the feed</a> or
+          <a href="https://github.com/intracloudtech/intracloud">read the source</a>.
+        </p>
+      </main>
+    </div>
+
+    <footer>Intracloud. Publish by committing a file.</footer>
+  </body>
+</html>
