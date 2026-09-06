@@ -5,7 +5,8 @@
   "workspaces": [
     "packages/schema",
     "packages/ingest",
-    "packages/site"
+    "packages/site",
+    "packages/cli"
   ],
   "engines": {
     "node": ">=20"
